@@ -1,0 +1,33 @@
+{
+	"schemaVersion": 1,
+	"id": "containergui",
+	"version": "${version}",
+	"name": "Container GUI",
+	"description": "Attach another window and menu beside an AbstractContainerScreen without replacing the screen or taking player.containerMenu.",
+	"authors": [
+		"_exXXEe_!"
+	],
+	"license": "CC0-1.0",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			"com.exxxee.containergui.ContainerGui"
+		],
+		"client": [
+			"com.exxxee.containergui.client.ContainerGuiClient"
+		]
+	},
+	"mixins": [
+		"containergui.mixins.json",
+		{
+			"config": "containergui.client.mixins.json",
+			"environment": "client"
+		}
+	],
+	"depends": {
+		"fabricloader": ">=0.19.2",
+		"minecraft": "~26.1.2",
+		"java": ">=25",
+		"fabric-api": "*"
+	}
+}

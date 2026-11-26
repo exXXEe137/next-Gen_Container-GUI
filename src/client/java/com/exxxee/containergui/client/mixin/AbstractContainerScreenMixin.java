@@ -1,0 +1,177 @@
+package com.exxxee.containergui.client.mixin;
+
+import com.exxxee.containergui.Inventory.menu.AbstractBackpackMenu;
+import com.exxxee.containergui.api.IBackpackHost;
+import com.exxxee.containergui.client.gui.windows.*;
+import net.minecraft.ChatFormatting;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.client.input.KeyEvent;
+import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.world.Container;
+import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.item.ItemStack;
+import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.Unique;
+import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
+
+import java.util.Collection;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
+@Mixin(AbstractContainerScreen.class)
+public abstract class AbstractContainerScreenMixin implements IBackpackHost, BackpackWindowHost {
+
+    @Shadow protected int leftPos;
+    @Shadow protected int topPos;
+    @Shadow protected AbstractContainerMenu menu;
+    @Unique private final Map<Integer, Container> backpackContainers = new LinkedHashMap<>();
+    @Unique private final Map<Integer, AbstractBackpackMenu> backpackMenus = new LinkedHashMap<>();
+    @Unique private final Map<Integer, AbstractBackpackWindows<?>> backpackWindows = new LinkedHashMap<>();
+
+    @Override public Collection<Container> getBackpackContainers() {
+        return this.backpackContainers.values();
+    }
+
+    @Override public Container getBackpackContainer(int windowId) {
+        return this.backpackContainers.get(windowId);
+    }
+
+    @Override public void setBackpackContainer(int windowId, Container container) {
+        if (container == null) {
+            this.backpackContainers.remove(windowId);
+        } else {
+            this.backpackContainers.put(windowId, container);
+        }
+    }
+
+    @Override public Collection<AbstractBackpackMenu> getBackpackMenus() {
+        return this.backpackMenus.values();
+    }
+
+    @Override public AbstractBackpackMenu getBackpackMenu (int windowId) {
+        return this.backpackMenus.get(windowId);
+    }
+
+    @Override public void setBackpackMenu (int windowId, AbstractBackpackMenu backpackMenu) {
+        if (backpackMenu == null) {
+            this.backpackMenus.remove(windowId);
+        } else {
+            this.backpackMenus.put(windowId, backpackMenu);
+        }
+    }
+
+    @Override public void setBackpackWindow(int windowId, AbstractBackpackWindows<?> window) {
+        if (window == null) {
+            this.backpackWindows.remove(windowId);
+        } else {
+            this.backpackWindows.put(windowId, window);
+        }
+    }
+
+    @Override public AbstractBackpackWindows<?> getBackpackWindow(int windowId) {
+        return this.backpackWindows.get(windowId);
+    }
+
+
+    @Inject(method = "init", at = @At("TAIL"))
+    public void backpack$init (CallbackInfo ci) {
+        for (AbstractBackpackMenu menu : ((IBackpackHost) Minecraft.getInstance().player).getBackpackMenus()) {
+            if (this.backpackWindows.containsKey(menu.containerId)) continue;
+            AbstractBackpackWindows<?> window = MenuWindows.window(menu);
+            if (window == null) continue;
+            this.setBackpackWindow(menu.containerId, window);
+        }
+    }
+
+    @Inject(method = "containerTick", at = @At("TAIL"))
+    public void backpack$containerTick (CallbackInfo ci) {
+        for (AbstractBackpackWindows<?> window : List.copyOf(this.backpackWindows.values())) {
+            window.tick();
+        }
+    }
+
+    @Inject(method = "extractCarriedItem", at = @At("HEAD"), cancellable = true)
+    private void backpack$extractCarriedItem(GuiGraphicsExtractor graphics, int mouseX, int mouseY, CallbackInfo ci) {
+        for (AbstractBackpackWindows<?> window : this.backpackWindows.values()) {
+            Integer remainder = window.quickCraftPreview();
+            if (remainder == null) continue;
+            ItemStack carried = this.menu.getCarried().copyWithCount(remainder);
+            String itemCount = carried.isEmpty() ? ChatFormatting.YELLOW + "0" : null;
+            graphics.nextStratum();
+            graphics.item(carried, mouseX - 8, mouseY - 8);
+            graphics.itemDecorations(Minecraft.getInstance().font, carried, mouseX - 8, mouseY - 8, itemCount);
+            ci.cancel();
+            return;
+        }
+    }
+
+    @Inject(method = "extractContents", at = @At("TAIL"))
+    public void backpack$extractRenderState (GuiGraphicsExtractor graphics, int mouseX, int mouseY, float a, CallbackInfo ci) {
+        for (AbstractBackpackWindows<?> window : List.copyOf(backpackWindows.values())) {
+            window.init(this.leftPos, this.topPos);
+            window.extractRenderState(graphics, mouseX, mouseY, a);
+        }
+    }
+
+    @Inject(method = "mouseClicked", at = @At("HEAD"),  cancellable = true)
+    public void backpack$mouseClicked (MouseButtonEvent event, boolean doubleClick, CallbackInfoReturnable<Boolean> cir) {
+        for (AbstractBackpackWindows<?> window : List.copyOf(backpackWindows.values())) {
+            if (window.isMouseOver(event.x(), event.y())) {
+                cir.setReturnValue(window.mouseClicked(event, doubleClick));
+            }
+        }
+    }
+
+    @Inject(method = "mouseReleased", at = @At("HEAD"), cancellable = true)
+    public void backpack$mouseReleased (MouseButtonEvent event, CallbackInfoReturnable<Boolean> cir) {
+        for (AbstractBackpackWindows<?> window : List.copyOf(backpackWindows.values())) {
+            if (window.hasPendingRelease()) {
+                cir.setReturnValue(window.mouseReleased(event));
+                return;
+            }
+        }
+        for (AbstractBackpackWindows<?> window : List.copyOf(backpackWindows.values())) {
+            if (window.isMouseOver(event.x(), event.y())) {
+                cir.setReturnValue(window.mouseReleased(event));
+            }
+        }
+    }
+
+    @Inject(method = "mouseDragged", at = @At("HEAD"), cancellable = true)
+    public void backpack$mouseDragged (MouseButtonEvent event, double dx, double dy, CallbackInfoReturnable<Boolean> cir) {
+        for (AbstractBackpackWindows<?> window : List.copyOf(backpackWindows.values())) {
+            if (window.isMouseOver(event.x(), event.y()) && window.mouseDragged(event, dx, dy)) {
+                cir.setReturnValue(true);
+                return;
+            }
+        }
+    }
+
+    @Inject(method = "mouseScrolled", at = @At("HEAD"), cancellable = true)
+    public void backpack$mouseScrolled (double x, double y, double scrollX, double scrollY, CallbackInfoReturnable<Boolean> cir) {
+        for (AbstractBackpackWindows<?> window : List.copyOf(backpackWindows.values())) {
+            if (window.isMouseOver(x, y) && window.mouseScrolled(x, y, scrollX, scrollY)) {
+                cir.setReturnValue(true);
+                return;
+            }
+        }
+    }
+
+    @Inject(method = "keyPressed", at = @At("HEAD"), cancellable = true)
+    public void backpack$keyPressed (KeyEvent event, CallbackInfoReturnable<Boolean> cir) {
+        for (AbstractBackpackWindows<?> window : List.copyOf(backpackWindows.values())) {
+            if (window.keyPressed(event)) {
+                cir.setReturnValue(true);
+                return;
+            }
+        }
+    }
+
+}
