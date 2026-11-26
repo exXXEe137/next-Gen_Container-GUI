@@ -35,51 +35,6 @@ public abstract class AbstractContainerScreenMixin implements IBackpackHost, Bac
     @Unique private final Map<Integer, AbstractBackpackMenu> backpackMenus = new LinkedHashMap<>();
     @Unique private final Map<Integer, AbstractBackpackWindows<?>> backpackWindows = new LinkedHashMap<>();
 
-    @Override public Collection<Container> getBackpackContainers() {
-        return this.backpackContainers.values();
-    }
-
-    @Override public Container getBackpackContainer(int windowId) {
-        return this.backpackContainers.get(windowId);
-    }
-
-    @Override public void setBackpackContainer(int windowId, Container container) {
-        if (container == null) {
-            this.backpackContainers.remove(windowId);
-        } else {
-            this.backpackContainers.put(windowId, container);
-        }
-    }
-
-    @Override public Collection<AbstractBackpackMenu> getBackpackMenus() {
-        return this.backpackMenus.values();
-    }
-
-    @Override public AbstractBackpackMenu getBackpackMenu (int windowId) {
-        return this.backpackMenus.get(windowId);
-    }
-
-    @Override public void setBackpackMenu (int windowId, AbstractBackpackMenu backpackMenu) {
-        if (backpackMenu == null) {
-            this.backpackMenus.remove(windowId);
-        } else {
-            this.backpackMenus.put(windowId, backpackMenu);
-        }
-    }
-
-    @Override public void setBackpackWindow(int windowId, AbstractBackpackWindows<?> window) {
-        if (window == null) {
-            this.backpackWindows.remove(windowId);
-        } else {
-            this.backpackWindows.put(windowId, window);
-        }
-    }
-
-    @Override public AbstractBackpackWindows<?> getBackpackWindow(int windowId) {
-        return this.backpackWindows.get(windowId);
-    }
-
-
     @Inject(method = "init", at = @At("TAIL"))
     public void backpack$init (CallbackInfo ci) {
         for (AbstractBackpackMenu menu : ((IBackpackHost) Minecraft.getInstance().player).getBackpackMenus()) {
@@ -172,6 +127,50 @@ public abstract class AbstractContainerScreenMixin implements IBackpackHost, Bac
                 return;
             }
         }
+    }
+
+    @Override public Collection<Container> getBackpackContainers() {
+        return this.backpackContainers.values();
+    }
+
+    @Override public Container getBackpackContainer(int windowId) {
+        return this.backpackContainers.get(windowId);
+    }
+
+    @Override public void setBackpackContainer(int windowId, Container container) {
+        if (container == null) {
+            this.backpackContainers.remove(windowId);
+        } else {
+            this.backpackContainers.put(windowId, container);
+        }
+    }
+
+    @Override public Collection<AbstractBackpackMenu> getBackpackMenus() {
+        return this.backpackMenus.values();
+    }
+
+    @Override public AbstractBackpackMenu getBackpackMenu (int windowId) {
+        return this.backpackMenus.get(windowId);
+    }
+
+    @Override public void setBackpackMenu (int windowId, AbstractBackpackMenu backpackMenu) {
+        if (backpackMenu == null) {
+            this.backpackMenus.remove(windowId);
+        } else {
+            this.backpackMenus.put(windowId, backpackMenu);
+        }
+    }
+
+    @Override public void setBackpackWindow(int windowId, AbstractBackpackWindows<?> window) {
+        if (window == null) {
+            this.backpackWindows.remove(windowId);
+        } else {
+            this.backpackWindows.put(windowId, window);
+        }
+    }
+
+    @Override public AbstractBackpackWindows<?> getBackpackWindow(int windowId) {
+        return this.backpackWindows.get(windowId);
     }
 
 }

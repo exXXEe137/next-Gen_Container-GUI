@@ -464,11 +464,6 @@ public abstract class AbstractBackpackWindows<T extends AbstractBackpackMenu> ex
                     slotId = -999;
                 }
 
-//                if (this.minecraft.options.touchscreen().get() && clickedOutside && this.menu.getCarried().isEmpty()) {
-//                    this.onClose();
-//                    return true;
-//                }
-
                 if (slotId != -1) {
                     if (this.minecraft.options.touchscreen().get()) {
                         if (slot != null && slot.hasItem()) {
